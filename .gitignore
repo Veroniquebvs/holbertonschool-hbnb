@@ -207,3 +207,6 @@ marimo/_lsp/
 __marimo__/
 .cache/
 *test
+test_app_models_user
+test_app_place_with_relation
+test_models_amenity.py
