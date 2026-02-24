@@ -87,14 +87,20 @@ The business logic layer is composed of four main entities that inherit from a `
 from app.models.user import User
 
 def test_user_creation():
-    user = User(first_name="John", last_name="Doe", email="john.doe@example.com")
+    user = User(first_name="John", last_name="Doe", email="john.doe@example.com", password="azerty")
     assert user.first_name == "John"
     assert user.last_name == "Doe"
     assert user.email == "john.doe@example.com"
+    assert user.password == "azerty"
     assert user.is_admin is False  # Default value
     print("User creation test passed!")
 
 test_user_creation()
+```
+
+```
+veronique@DESKTOP-2QQLIC1:~/hbnb/holbertonschool-hbnb/part2$ python test_app_models_user.py 
+User creation test passed!
 ```
 
 ### Place class test
@@ -105,7 +111,7 @@ from app.models.user import User
 from app.models.review import Review
 
 def test_place_creation():
-    owner = User(first_name="Alice", last_name="Smith", email="alice.smith@example.com")
+    owner = User(first_name="Alice", last_name="Smith", email="alice.smith@example.com", password="menton")
     place = Place(title="Cozy Apartment", description="A nice place to stay", price=100, latitude=37.7749, longitude=-122.4194, owner=owner)
 
     # Adding a review
@@ -121,6 +127,11 @@ def test_place_creation():
 test_place_creation()
 ```
 
+```
+veronique@DESKTOP-2QQLIC1:~/hbnb/holbertonschool-hbnb/part2$ python test_app_place_with_relation.py 
+Place creation and relationship test passed!
+```
+
 ### Amenity class test
 
 ```
@@ -132,6 +143,11 @@ def test_amenity_creation():
     print("Amenity creation test passed!")
 
 test_amenity_creation()
+```
+
+```
+veronique@DESKTOP-2QQLIC1:~/hbnb/holbertonschool-hbnb/part2$ python test_models_amenity.py 
+Amenity creation test passed!
 ```
 
 ## Install the dependencies
