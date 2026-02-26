@@ -1,11 +1,14 @@
 from app.persistence.repository import InMemoryRepository
 from app.models.user import User
 from app.models.amenity import Amenity
+from app.models.review import Review
 
 
 class HBnBFacade:
     def __init__(self):
         self.user_repo = InMemoryRepository()
+        self.review_repo = InMemoryRepository()
+        self.place_repo = InMemoryRepository()
 
     def create_user(self, user_data):
         user = User(**user_data)
@@ -63,3 +66,91 @@ class HBnBFacade:
 
         self.amenity_repo.update(amenity_id, {"name": name})
         return amenity
+
+    # -------------- Review methods -----------------------
+
+    def _validate_review(self, review_data):
+        """Raise ValueError if review_data is invalid"""
+
+        if not isinstance(review_data, dict):
+            raise TypeError("review_data must be a dictionary")
+
+        user_id = review_data.get("user_id")
+        place_id = review_data.get("place_id")
+        text = review_data.get("text")
+        rating = review_data.get("rating")
+
+        if not all([user_id, place_id, text, rating]):
+            raise ValueError("Missing required fields")
+
+        user = self.user_repo.get(user_id)
+        if user is None:
+            raise ValueError("User not found")
+
+        place = self.place_repo.get(place_id)
+        if place is None:
+            raise ValueError("Place not found")
+
+        if not isinstance(rating, int) or rating < 1 or rating > 5:
+            raise ValueError("Rating must be an integer between 1 and 5")
+
+        return text, rating, place, user
+
+    def create_review(self, review_data):
+        # Placeholder for logic to create a review, including validation
+        # for user_id, place_id, and rating
+        text, rating, place, user = self._validate_review(review_data)
+        review = Review(text, rating, place, user)
+        self.review_repo.add(review)
+        place.add_review(review)
+        return review
+
+    def get_review(self, review_id):
+        # Placeholder for logic to retrieve a review by ID
+        review = self.review_repo.get(review_id)
+        if review is None:
+            raise ValueError("Review not found")
+
+        return review
+
+    def get_all_reviews(self):
+        # Placeholder for logic to retrieve all reviews
+        return self.review_repo.get_all()
+
+    def get_reviews_by_place(self, place_id):
+        # Placeholder for logic to retrieve all reviews for a specific place
+        place = self.place_repo.get(place_id)
+        if place is None:
+            raise ValueError("Place not found")
+        return place.reviews
+
+    def _validate_update_review(self, review_data):
+        """ Raise ValueError if update review_data is invalid"""
+        if not isinstance(review_data, dict):
+            raise TypeError("review_data must be a dictionary")
+
+        if "text" in review_data:
+            text = review_data["text"]
+            if not isinstance(text, str) or not text.strip():
+                raise ValueError("text must be a non-empty string")
+
+        if "rating" in review_data:
+            rating = review_data["rating"]
+            if not isinstance(rating, int) or rating < 1 or rating > 5:
+                raise ValueError("rating must be between 1 and 5")
+
+        return review_data
+
+    def update_review(self, review_id, review_data):
+        # Placeholder for logic to update a review
+        review = self.review_repo.get(review_id)
+        if review is None:
+            raise ValueError("Review not found")
+
+        update_review = self._validate_update_review(review_data)
+        self.review_repo.update(review_id, update_review)
+        return review
+
+    def delete_review(self, review_id):
+        # Placeholder for logic to delete a review
+        return self.review_repo.delete(review_id)
