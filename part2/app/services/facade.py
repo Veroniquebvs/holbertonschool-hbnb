@@ -3,11 +3,13 @@ from app.models.user import User
 from app.models.amenity import Amenity
 from app.models.review import Review
 
+from app.models.place import Place
 
 class HBnBFacade:
     def __init__(self):
         self.user_repo = InMemoryRepository()
         self.review_repo = InMemoryRepository()
+        self.amenity_repo = InMemoryRepository()
         self.place_repo = InMemoryRepository()
 
     def create_user(self, user_data):
@@ -154,3 +156,92 @@ class HBnBFacade:
     def delete_review(self, review_id):
         # Placeholder for logic to delete a review
         return self.review_repo.delete(review_id)
+    # -------- PLACE METHODS (Task Place) --------
+
+    def create_place(self, place_data):
+        if not isinstance(place_data, dict):
+            raise ValueError("Invalid input data")
+
+        title = place_data.get("title")
+        description = place_data.get("description", None)
+        price = place_data.get("price")
+        latitude = place_data.get("latitude")
+        longitude = place_data.get("longitude")
+        owner_id = place_data.get("owner_id")
+        amenities_ids = place_data.get("amenities", [])
+
+        if title is None or price is None or latitude is None or longitude is None or not owner_id:
+            raise ValueError("Invalid input data")
+
+        if not isinstance(amenities_ids, list):
+            raise ValueError("Invalid input data")
+
+        owner = self.user_repo.get(owner_id)
+        if not owner:
+            raise ValueError("Invalid input data")
+
+        amenities = []
+        for aid in amenities_ids:
+            a = self.amenity_repo.get(aid)
+            if not a:
+                raise ValueError("Invalid input data")
+            amenities.append(a)
+
+        place = Place(
+            title=title,
+            description=description,
+            price=price,
+            latitude=latitude,
+            longitude=longitude,
+            owner=owner
+        )
+
+        place.amenities = amenities
+
+        self.place_repo.add(place)
+
+        return place, owner_id
+
+    def get_place(self, place_id):
+        return self.place_repo.get(place_id)
+
+    def get_all_places(self):
+        return self.place_repo.get_all()
+
+    def update_place(self, place_id, place_data):
+        if not isinstance(place_data, dict):
+            raise ValueError("Invalid input data")
+
+        place = self.place_repo.get(place_id)
+        if not place:
+            return None
+
+        if "owner_id" in place_data:
+            owner_id = place_data.get("owner_id")
+            if not owner_id:
+                raise ValueError("Invalid input data")
+            owner = self.user_repo.get(owner_id)
+            if not owner:
+                raise ValueError("Invalid input data")
+            place.owner = owner
+
+        if "amenities" in place_data:
+            amenities_ids = place_data.get("amenities")
+            if not isinstance(amenities_ids, list):
+                raise ValueError("Invalid input data")
+            amenities = []
+            for aid in amenities_ids:
+                a = self.amenity_repo.get(aid)
+                if not a:
+                    raise ValueError("Invalid input data")
+                amenities.append(a)
+            place.amenities = amenities
+
+        allowed = {}
+        for key in ("title", "description", "price", "latitude", "longitude"):
+            if key in place_data:
+                allowed[key] = place_data[key]
+
+        self.place_repo.update(place_id, allowed)
+
+        return self.place_repo.get(place_id)
