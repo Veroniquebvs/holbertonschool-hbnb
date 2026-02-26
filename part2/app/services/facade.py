@@ -79,19 +79,16 @@ class HBnBFacade:
         owner_id = place_data.get("owner_id")
         amenities_ids = place_data.get("amenities", [])
 
-        # Basic required fields check (simple)
         if title is None or price is None or latitude is None or longitude is None or not owner_id:
             raise ValueError("Invalid input data")
 
         if not isinstance(amenities_ids, list):
             raise ValueError("Invalid input data")
 
-        # Owner must exist
         owner = self.user_repo.get(owner_id)
         if not owner:
             raise ValueError("Invalid input data")
 
-        # Amenities must exist
         amenities = []
         for aid in amenities_ids:
             a = self.amenity_repo.get(aid)
@@ -99,7 +96,6 @@ class HBnBFacade:
                 raise ValueError("Invalid input data")
             amenities.append(a)
 
-        # Create Place (Place model will validate too)
         place = Place(
             title=title,
             description=description,
@@ -109,12 +105,10 @@ class HBnBFacade:
             owner=owner
         )
 
-        # Attach amenities (many-to-many simplified)
         place.amenities = amenities
 
         self.place_repo.add(place)
 
-        # On renvoie aussi owner_id pour la réponse POST
         return place, owner_id
 
     def get_place(self, place_id):
@@ -131,7 +125,6 @@ class HBnBFacade:
         if not place:
             return None
 
-        # Handle owner_id update (if present)
         if "owner_id" in place_data:
             owner_id = place_data.get("owner_id")
             if not owner_id:
@@ -141,7 +134,6 @@ class HBnBFacade:
                 raise ValueError("Invalid input data")
             place.owner = owner
 
-        # Handle amenities update (if present)
         if "amenities" in place_data:
             amenities_ids = place_data.get("amenities")
             if not isinstance(amenities_ids, list):
@@ -154,14 +146,11 @@ class HBnBFacade:
                 amenities.append(a)
             place.amenities = amenities
 
-        # Update basic fields (if present)
         allowed = {}
         for key in ("title", "description", "price", "latitude", "longitude"):
             if key in place_data:
                 allowed[key] = place_data[key]
 
-        # Use BaseModel.update() via repository update
-        # (repo.update -> obj.update -> save())
         self.place_repo.update(place_id, allowed)
 
         return self.place_repo.get(place_id)
