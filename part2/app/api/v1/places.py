@@ -4,6 +4,7 @@ from app.services import facade
 
 api = Namespace('places', description='Place operations')
 
+# ---- Related models (docs) ----
 amenity_model = api.model('PlaceAmenity', {
     'id': fields.String(description='Amenity ID'),
     'name': fields.String(description='Name of the amenity')
@@ -16,6 +17,14 @@ user_model = api.model('PlaceUser', {
     'email': fields.String(description='Email of the owner')
 })
 
+review_model = api.model('PlaceReview', {
+    'id': fields.String(description='Review ID'),
+    'text': fields.String(description='Text of the review'),
+    'rating': fields.Integer(description='Rating of the place (1-5)'),
+    'user_id': fields.String(description='ID of the user')
+})
+
+# ---- Input model ----
 place_model = api.model('Place', {
     'title': fields.String(required=True, description='Title of the place'),
     'description': fields.String(description='Description of the place'),
@@ -23,7 +32,9 @@ place_model = api.model('Place', {
     'latitude': fields.Float(required=True, description='Latitude of the place'),
     'longitude': fields.Float(required=True, description='Longitude of the place'),
     'owner_id': fields.String(required=True, description='ID of the owner'),
-    'amenities': fields.List(fields.String, required=True, description="List of amenities ID's")
+    'amenities': fields.List(fields.String, required=True, description="List of amenities ID's"),
+
+    'reviews': fields.List(fields.Nested(review_model), description='List of reviews')
 })
 
 
@@ -62,7 +73,16 @@ def _place_payload_detail(p):
             "last_name": owner.last_name,
             "email": owner.email
         },
-        "amenities": [{"id": a.id, "name": a.name} for a in p.amenities]
+        "amenities": [{"id": a.id, "name": a.name} for a in p.amenities],
+        "reviews": [
+            {
+                "id": r.id,
+                "text": r.text,
+                "rating": r.rating,
+                "user_id": r.user.id
+            }
+            for r in getattr(p, "reviews", [])
+        ]
     }
 
 
@@ -94,7 +114,7 @@ class PlaceResource(Resource):
     @api.response(200, 'Place details retrieved successfully')
     @api.response(404, 'Place not found')
     def get(self, place_id):
-        """Get place details by ID (including owner and amenities)"""
+        """Get place details by ID (including owner, amenities, and reviews)"""
         place = facade.get_place(place_id)
         if not place:
             return {"error": "Place not found"}, 404
@@ -125,5 +145,12 @@ class PlaceReviewList(Resource):
     @api.response(404, 'Place not found')
     def get(self, place_id):
         """Get all reviews for a specific place"""
-        # Placeholder for logic to return a list of reviews for a place
-        pass
+        try:
+            reviews = facade.get_reviews_by_place(place_id)
+        except ValueError:
+            return {"error": "Place not found"}, 404
+
+        return [
+            {"id": r.id, "text": r.text, "rating": r.rating}
+            for r in (reviews or [])
+        ], 200
