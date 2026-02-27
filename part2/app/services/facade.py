@@ -154,8 +154,16 @@ class HBnBFacade:
         return review
 
     def delete_review(self, review_id):
-        # Placeholder for logic to delete a review
-        return self.review_repo.delete(review_id)
+        review = self.review_repo.get(review_id)
+        if not review:
+            return False
+
+        place = review.place
+        if place and hasattr(place, "reviews"):
+            place.reviews = [r for r in place.reviews if r.id != review_id]
+
+        self.review_repo.delete(review_id)
+        return True
     # -------- PLACE METHODS (Task Place) --------
 
     def create_place(self, place_data):

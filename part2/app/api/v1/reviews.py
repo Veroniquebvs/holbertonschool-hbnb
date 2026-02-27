@@ -92,9 +92,7 @@ class ReviewResource(Resource):
     @api.response(404, 'Review not found')
     def delete(self, review_id):
         """Delete a review"""
-        try:
-            facade.delete_review(review_id)
-        except ValueError:
+        deleted = facade.delete_review(review_id)
+        if not deleted:
             return {"error": "Review not found"}, 404
-
         return {"message": "Review deleted successfully"}, 200
