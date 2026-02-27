@@ -1,5 +1,7 @@
 # cURL API Testing
 
+This document describes manual cURL testing
+
 ## User
 
 ### Create a user

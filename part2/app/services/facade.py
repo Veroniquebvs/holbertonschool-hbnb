@@ -110,8 +110,6 @@ class HBnBFacade:
     def get_review(self, review_id):
         # Placeholder for logic to retrieve a review by ID
         review = self.review_repo.get(review_id)
-        if review is None:
-            raise ValueError("Review not found")
 
         return review
 
