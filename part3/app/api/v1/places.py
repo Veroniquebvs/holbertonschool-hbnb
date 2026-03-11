@@ -101,7 +101,10 @@ class PlaceList(Resource):
             return {"error": "User not found"}, 404
 
         is_admin = current_user.is_admin
-        data = request.get_json(silent=True)
+
+        data = request.get_json()
+        if not data or not isinstance(data, dict):
+            return {"error": "Missing or invalid JSON"}, 400
 
         if not is_admin:
             data["owner_id"] = user_id
@@ -147,7 +150,9 @@ class PlaceResource(Resource):
         if not current_user.is_admin and place.owner_id != user_id:
             return {"error": "Unauthorized action"}, 403
 
-        data = request.get_json(silent=True)
+        data = request.get_json()
+        if not data or not isinstance(data, dict):
+            return {"error": "Missing or invalid JSON"}, 400
 
         try:
             updated = facade.update_place(place_id, data)
