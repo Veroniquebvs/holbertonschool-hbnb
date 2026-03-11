@@ -105,7 +105,7 @@ class PlaceList(Resource):
 
         current_user = get_jwt_identity()
 
-        # Force owner_id from JWT
+        # Force owner_id from JWT, never trust client input
         data["owner_id"] = current_user
 
         try:
