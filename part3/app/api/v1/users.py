@@ -1,5 +1,6 @@
 from flask_restx import Namespace, Resource, fields
 from app.services import facade
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 api = Namespace('users', description='User operations')
 
@@ -30,8 +31,15 @@ class UserList(Resource):
     @api.response(201, 'User successfully created')
     @api.response(400, 'Email already registered')
     @api.response(400, 'Invalid input data')
+    @jwt_required()
     def post(self):
         """Register a new user"""
+        current_user_id = get_jwt_identity()
+        current_user = facade.get_user(current_user_id)
+
+        if not current_user.is_admin:
+            return {"error": "Admin privileges required"}, 403
+
         user_data = api.payload
 
         existing_user = facade.get_user_by_email(user_data['email'])
@@ -47,8 +55,15 @@ class UserList(Resource):
         }, 201
 
     @api.response(200, 'List of users retrieved successfully')
+    @jwt_required()
     def get(self):
         """Get all users"""
+        current_user_id = get_jwt_identity()
+        current_user = facade.get_user(current_user_id)
+
+        if not current_user.is_admin:
+            return {"error": "Admin privileges required"}, 403
+
         users = facade.get_all_users()
         result = []
         for u in users:
@@ -81,9 +96,24 @@ class UserResource(Resource):
     @api.response(200, 'User successfully updated')
     @api.response(400, 'Invalid input data')
     @api.response(404, 'User not found')
+    @jwt_required()
     def put(self, user_id):
         """Update a user"""
+        current_user_id = get_jwt_identity()
+        current_user = facade.get_user(current_user_id)
+
+        if user_id != current_user_id and not current_user.is_admin:
+            return {"error": "Admin privileges required"}, 403
+
         user_data = api.payload
+        email = user_data.get('email')
+
+        if email:
+            # Check if email is already in use
+            existing_user = facade.get_user_by_email(email)
+            if existing_user and existing_user.id != user_id:
+                return {'error': 'Email is already in use'}, 400
+
         updated_user = facade.update_user(user_id, user_data)
 
         if not updated_user:
