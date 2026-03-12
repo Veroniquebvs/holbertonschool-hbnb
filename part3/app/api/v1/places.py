@@ -1,8 +1,7 @@
 from flask import request
 from flask_restx import Namespace, Resource, fields
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.services import facade
-from flask_jwt_extended import jwt_required, get_jwt_identity
 
 api = Namespace('places', description='Place operations')
 
@@ -90,6 +89,11 @@ def _place_payload_detail(p):
     }
 
 
+def _is_admin():
+    claims = get_jwt()
+    return claims.get("is_admin", False)
+
+
 @api.route('/')
 class PlaceList(Resource):
     @api.expect(place_input_model, validate=True)
@@ -99,26 +103,13 @@ class PlaceList(Resource):
     @jwt_required()
     def post(self):
         """Register a new place"""
-        user_id = get_jwt_identity()
-        current_user = facade.get_user(user_id)
-        if not current_user:
-            return {"error": "User not found"}, 404
-
-        is_admin = current_user.is_admin
-
-        data = request.get_json()
-        if not data or not isinstance(data, dict):
-            return {"error": "Missing or invalid JSON"}, 400
-
-        if not is_admin:
-            data["owner_id"] = user_id
-
+        data = request.get_json(silent=True)
         if not isinstance(data, dict):
             return {"error": "Invalid input data"}, 400
 
         current_user = get_jwt_identity()
 
-        # Force owner_id from JWT, never trust client input
+        # Force owner_id from JWT
         data["owner_id"] = current_user
 
         try:
@@ -150,33 +141,19 @@ class PlaceResource(Resource):
     @api.response(200, 'Place updated successfully')
     @api.response(404, 'Place not found')
     @api.response(400, 'Invalid input data')
-    @jwt_required()
-    def put(self, place_id):
-        """Update a place's information"""
-        user_id = get_jwt_identity()
-        current_user = facade.get_user(user_id)
-
-        place = facade.get_place(place_id)
-        if not place:
-            return {"error": "Place not found"}, 404
-        if not current_user.is_admin and place.owner_id != user_id:
-            return {"error": "Unauthorized action"}, 403
-
-        data = request.get_json()
-        if not data or not isinstance(data, dict):
-            return {"error": "Missing or invalid JSON"}, 400
     @api.response(403, 'Unauthorized action')
     @api.response(401, 'Missing or invalid token')
     @jwt_required()
     def put(self, place_id):
         """Update a place's information"""
         current_user = get_jwt_identity()
-        place = facade.get_place(place_id)
+        is_admin = _is_admin()
 
+        place = facade.get_place(place_id)
         if not place:
             return {"error": "Place not found"}, 404
 
-        if place.owner.id != current_user:
+        if not is_admin and place.owner.id != current_user:
             return {"error": "Unauthorized action"}, 403
 
         data = request.get_json(silent=True)
