@@ -2,6 +2,7 @@ from flask import request
 from flask_restx import Namespace, Resource, fields
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.services import facade
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 api = Namespace('places', description='Place operations')
 
@@ -98,7 +99,19 @@ class PlaceList(Resource):
     @jwt_required()
     def post(self):
         """Register a new place"""
-        data = request.get_json(silent=True)
+        user_id = get_jwt_identity()
+        current_user = facade.get_user(user_id)
+        if not current_user:
+            return {"error": "User not found"}, 404
+
+        is_admin = current_user.is_admin
+
+        data = request.get_json()
+        if not data or not isinstance(data, dict):
+            return {"error": "Missing or invalid JSON"}, 400
+
+        if not is_admin:
+            data["owner_id"] = user_id
 
         if not isinstance(data, dict):
             return {"error": "Invalid input data"}, 400
@@ -137,6 +150,21 @@ class PlaceResource(Resource):
     @api.response(200, 'Place updated successfully')
     @api.response(404, 'Place not found')
     @api.response(400, 'Invalid input data')
+    @jwt_required()
+    def put(self, place_id):
+        """Update a place's information"""
+        user_id = get_jwt_identity()
+        current_user = facade.get_user(user_id)
+
+        place = facade.get_place(place_id)
+        if not place:
+            return {"error": "Place not found"}, 404
+        if not current_user.is_admin and place.owner_id != user_id:
+            return {"error": "Unauthorized action"}, 403
+
+        data = request.get_json()
+        if not data or not isinstance(data, dict):
+            return {"error": "Missing or invalid JSON"}, 400
     @api.response(403, 'Unauthorized action')
     @api.response(401, 'Missing or invalid token')
     @jwt_required()
