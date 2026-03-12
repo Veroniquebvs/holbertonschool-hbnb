@@ -1,5 +1,6 @@
 from flask import request
 from flask_restx import Namespace, Resource, fields
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.services import facade
 
 api = Namespace('places', description='Place operations')
@@ -24,21 +25,22 @@ review_model = api.model('PlaceReview', {
     'user_id': fields.String(description='ID of the user')
 })
 
-# ---- Input model ----
-place_model = api.model('Place', {
+# ---- Input model for create/update ----
+place_input_model = api.model('PlaceInput', {
     'title': fields.String(required=True, description='Title of the place'),
     'description': fields.String(description='Description of the place'),
     'price': fields.Float(required=True, description='Price per night'),
     'latitude': fields.Float(required=True, description='Latitude of the place'),
     'longitude': fields.Float(required=True, description='Longitude of the place'),
-    'owner_id': fields.String(required=True, description='ID of the owner'),
-    'amenities': fields.List(fields.String, required=True, description="List of amenities ID's"),
-
-    'reviews': fields.List(fields.Nested(review_model), description='List of reviews')
+    'amenities': fields.List(
+        fields.String,
+        required=True,
+        description="List of amenities IDs"
+    )
 })
 
 
-def _place_payload_created(p, owner_id):
+def _place_payload_created(p):
     return {
         "id": p.id,
         "title": p.title,
@@ -46,7 +48,7 @@ def _place_payload_created(p, owner_id):
         "price": p.price,
         "latitude": p.latitude,
         "longitude": p.longitude,
-        "owner_id": owner_id
+        "owner_id": p.owner.id
     }
 
 
@@ -65,6 +67,7 @@ def _place_payload_detail(p):
         "id": p.id,
         "title": p.title,
         "description": p.description,
+        "price": p.price,
         "latitude": p.latitude,
         "longitude": p.longitude,
         "owner": {
@@ -88,19 +91,29 @@ def _place_payload_detail(p):
 
 @api.route('/')
 class PlaceList(Resource):
-    @api.expect(place_model)
+    @api.expect(place_input_model, validate=True)
     @api.response(201, 'Place successfully created')
     @api.response(400, 'Invalid input data')
+    @api.response(401, 'Missing or invalid token')
+    @jwt_required()
     def post(self):
         """Register a new place"""
         data = request.get_json(silent=True)
 
+        if not isinstance(data, dict):
+            return {"error": "Invalid input data"}, 400
+
+        current_user = get_jwt_identity()
+
+        # Force owner_id from JWT, never trust client input
+        data["owner_id"] = current_user
+
         try:
-            place, owner_id = facade.create_place(data)
+            place, _ = facade.create_place(data)
         except ValueError:
             return {"error": "Invalid input data"}, 400
 
-        return _place_payload_created(place, owner_id), 201
+        return _place_payload_created(place), 201
 
     @api.response(200, 'List of places retrieved successfully')
     def get(self):
@@ -120,13 +133,30 @@ class PlaceResource(Resource):
             return {"error": "Place not found"}, 404
         return _place_payload_detail(place), 200
 
-    @api.expect(place_model)
+    @api.expect(place_input_model, validate=False)
     @api.response(200, 'Place updated successfully')
     @api.response(404, 'Place not found')
     @api.response(400, 'Invalid input data')
+    @api.response(403, 'Unauthorized action')
+    @api.response(401, 'Missing or invalid token')
+    @jwt_required()
     def put(self, place_id):
         """Update a place's information"""
+        current_user = get_jwt_identity()
+        place = facade.get_place(place_id)
+
+        if not place:
+            return {"error": "Place not found"}, 404
+
+        if place.owner.id != current_user:
+            return {"error": "Unauthorized action"}, 403
+
         data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return {"error": "Invalid input data"}, 400
+
+        # Prevent changing ownership from request body
+        data.pop("owner_id", None)
 
         try:
             updated = facade.update_place(place_id, data)
@@ -136,7 +166,7 @@ class PlaceResource(Resource):
         if not updated:
             return {"error": "Place not found"}, 404
 
-        return {"message": "Place updated successfully"}, 200
+        return _place_payload_detail(updated), 200
 
 
 @api.route('/<place_id>/reviews')
@@ -151,6 +181,10 @@ class PlaceReviewList(Resource):
             return {"error": "Place not found"}, 404
 
         return [
-            {"id": r.id, "text": r.text, "rating": r.rating}
+            {
+                "id": r.id,
+                "text": r.text,
+                "rating": r.rating
+            }
             for r in (reviews or [])
         ], 200

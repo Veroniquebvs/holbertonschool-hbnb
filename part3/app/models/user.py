@@ -1,5 +1,6 @@
 import re
 from app.models.base_model import BaseModel
+from flask_bcrypt import generate_password_hash, check_password_hash
 
 
 class User(BaseModel):
@@ -39,7 +40,7 @@ class User(BaseModel):
         self.first_name = first_name.strip()
         self.last_name = last_name.strip()
         self.email = email
-        self.password = password
+        self.hash_password(password)
         self.is_admin = is_admin
         self.places = []
 
@@ -47,3 +48,11 @@ class User(BaseModel):
         """Add a place to the user's list of places."""
         if place not in self.places:
             self.places.append(place)
+
+    def hash_password(self, password):
+        """Hashes the password before storing it."""
+        self.password = generate_password_hash(password).decode('utf-8')
+
+    def verify_password(self, password):
+        """Verifies if the provided password matches the hashed password."""
+        return check_password_hash(self.password, password)

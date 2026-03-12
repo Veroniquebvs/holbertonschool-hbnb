@@ -30,7 +30,14 @@ class HBnBFacade:
         user = self.user_repo.get(user_id)
         if not user:
             return None
-        self.user_repo.update(user_id, user_data)
+
+        forbidden_fields = {"email", "password", "id"}
+        cleaned_data = {
+            key: value for key, value in user_data.items()
+            if key not in forbidden_fields
+        }
+
+        self.user_repo.update(user_id, cleaned_data)
         return self.user_repo.get(user_id)
     # -------- AMENITY METHODS (Task 03) --------
 
@@ -82,7 +89,7 @@ class HBnBFacade:
         text = review_data.get("text")
         rating = review_data.get("rating")
 
-        if not all([user_id, place_id, text, rating]):
+        if user_id is None or place_id is None or text is None or rating is None:
             raise ValueError("Missing required fields")
 
         user = self.user_repo.get(user_id)
@@ -93,15 +100,24 @@ class HBnBFacade:
         if place is None:
             raise ValueError("Place not found")
 
+        if not isinstance(text, str) or not text.strip():
+            raise ValueError("Invalid input data")
+
         if not isinstance(rating, int) or rating < 1 or rating > 5:
             raise ValueError("Rating must be an integer between 1 and 5")
 
-        return text, rating, place, user
+        return text.strip(), rating, place, user
 
     def create_review(self, review_data):
-        # Placeholder for logic to create a review, including validation
-        # for user_id, place_id, and rating
         text, rating, place, user = self._validate_review(review_data)
+
+        if place.owner.id == user.id:
+            raise ValueError("You cannot review your own place.")
+
+        existing_review = self.get_review_by_user_and_place(user.id, place.id)
+        if existing_review:
+            raise ValueError("You have already reviewed this place.")
+
         review = Review(text, rating, place, user)
         self.review_repo.add(review)
         place.add_review(review)
@@ -142,14 +158,13 @@ class HBnBFacade:
         return review_data
 
     def update_review(self, review_id, review_data):
-        # Placeholder for logic to update a review
         review = self.review_repo.get(review_id)
         if review is None:
-            raise ValueError("Review not found")
+            return None
 
         update_review = self._validate_update_review(review_data)
         self.review_repo.update(review_id, update_review)
-        return review
+        return self.review_repo.get(review_id)
 
     def delete_review(self, review_id):
         review = self.review_repo.get(review_id)
@@ -162,6 +177,14 @@ class HBnBFacade:
 
         self.review_repo.delete(review_id)
         return True
+    
+    def get_review_by_user_and_place(self, user_id, place_id):
+        reviews = self.review_repo.get_all()
+        for review in reviews:
+            if review.user.id == user_id and review.place.id == place_id:
+                return review
+        return None
+
     # -------- PLACE METHODS (Task Place) --------
 
     def create_place(self, place_data):
@@ -221,15 +244,6 @@ class HBnBFacade:
         place = self.place_repo.get(place_id)
         if not place:
             return None
-
-        if "owner_id" in place_data:
-            owner_id = place_data.get("owner_id")
-            if not owner_id:
-                raise ValueError("Invalid input data")
-            owner = self.user_repo.get(owner_id)
-            if not owner:
-                raise ValueError("Invalid input data")
-            place.owner = owner
 
         if "amenities" in place_data:
             amenities_ids = place_data.get("amenities")
