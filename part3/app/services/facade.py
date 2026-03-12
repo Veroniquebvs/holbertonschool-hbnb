@@ -12,6 +12,16 @@ class HBnBFacade:
         self.amenity_repo = InMemoryRepository()
         self.place_repo = InMemoryRepository()
 
+        # Admin bootstrap user for local testing
+        admin = User(
+            first_name="Admin",
+            last_name="Root",
+            email="admin@test.com",
+            password="admin1234",
+            is_admin=True
+        )
+        self.user_repo.add(admin)
+
     def create_user(self, user_data):
         user = User(**user_data)
         self.user_repo.add(user)
@@ -26,16 +36,25 @@ class HBnBFacade:
     def get_all_users(self):
         return self.user_repo.get_all()
 
-    def update_user(self, user_id, user_data):
+    def update_user(self, user_id, user_data, is_admin=False):
         user = self.user_repo.get(user_id)
         if not user:
             return None
 
-        forbidden_fields = {"email", "password", "id"}
-        cleaned_data = {
-            key: value for key, value in user_data.items()
-            if key not in forbidden_fields
-        }
+        if not isinstance(user_data, dict):
+            raise ValueError("Invalid input data")
+
+        if not is_admin:
+            forbidden_fields = {"email", "password", "id", "is_admin"}
+            cleaned_data = {
+                key: value for key, value in user_data.items()
+                if key not in forbidden_fields
+            }
+        else:
+            cleaned_data = {
+                key: value for key, value in user_data.items()
+                if key != "id"
+            }
 
         self.user_repo.update(user_id, cleaned_data)
         return self.user_repo.get(user_id)

@@ -1,7 +1,6 @@
 from flask_restx import Namespace, Resource, fields
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.services import facade
-from flask_jwt_extended import jwt_required, get_jwt_identity
 
 api = Namespace('users', description='User operations')
 
@@ -25,10 +24,19 @@ user_model = api.model('User', {
     )
 })
 
-# Model for updating a user
+# Model for normal user update
 user_update_model = api.model('UserUpdate', {
     'first_name': fields.String(description='First name of the user'),
     'last_name': fields.String(description='Last name of the user')
+})
+
+# Model for admin update
+admin_user_update_model = api.model('AdminUserUpdate', {
+    'first_name': fields.String(description='First name of the user'),
+    'last_name': fields.String(description='Last name of the user'),
+    'email': fields.String(description='Email of the user'),
+    'password': fields.String(description='Password of the user'),
+    'is_admin': fields.Boolean(description='Admin status')
 })
 
 
@@ -41,22 +49,26 @@ def _user_payload(user):
     }
 
 
+def _is_admin():
+    claims = get_jwt()
+    return claims.get("is_admin", False)
+
+
 @api.route('/')
 class UserList(Resource):
     @api.expect(user_model, validate=True)
     @api.response(201, 'User successfully created')
     @api.response(400, 'Email already registered')
-    @api.response(400, 'Invalid input data')
+    @api.response(403, 'Admin privileges required')
     @jwt_required()
     def post(self):
-        """Register a new user"""
-        current_user_id = get_jwt_identity()
-        current_user = facade.get_user(current_user_id)
-
-        if not current_user.is_admin:
-            return {"error": "Admin privileges required"}, 403
+        """Register a new user (admin only)"""
+        if not _is_admin():
+            return {'error': 'Admin privileges required'}, 403
 
         user_data = api.payload
+        if not isinstance(user_data, dict):
+            return {'error': 'Invalid input data'}, 400
 
         existing_user = facade.get_user_by_email(user_data['email'])
         if existing_user:
@@ -66,15 +78,8 @@ class UserList(Resource):
         return _user_payload(new_user), 201
 
     @api.response(200, 'List of users retrieved successfully')
-    @jwt_required()
     def get(self):
         """Get all users"""
-        current_user_id = get_jwt_identity()
-        current_user = facade.get_user(current_user_id)
-
-        if not current_user.is_admin:
-            return {"error": "Admin privileges required"}, 403
-
         users = facade.get_all_users()
         return [_user_payload(user) for user in users], 200
 
@@ -91,45 +96,38 @@ class UserResource(Resource):
 
         return _user_payload(user), 200
 
-    @api.expect(user_update_model, validate=False)
+    @api.expect(admin_user_update_model, validate=False)
     @api.response(200, 'User successfully updated')
     @api.response(400, 'Invalid input data')
     @api.response(404, 'User not found')
-    @jwt_required()
-    def put(self, user_id):
-        """Update a user"""
-        current_user_id = get_jwt_identity()
-        current_user = facade.get_user(current_user_id)
-
-        if user_id != current_user_id and not current_user.is_admin:
-            return {"error": "Admin privileges required"}, 403
-
-        user_data = api.payload
-        email = user_data.get('email')
-
-        if email:
-            # Check if email is already in use
-            existing_user = facade.get_user_by_email(email)
-            if existing_user and existing_user.id != user_id:
-                return {'error': 'Email is already in use'}, 400
     @api.response(403, 'Unauthorized action')
     @api.response(401, 'Missing or invalid token')
     @jwt_required()
     def put(self, user_id):
         """Update a user"""
-        current_user = get_jwt_identity()
-
-        if current_user != user_id:
-            return {'error': 'Unauthorized action'}, 403
+        current_user_id = get_jwt_identity()
+        is_admin = _is_admin()
 
         user_data = api.payload
         if not isinstance(user_data, dict):
             return {'error': 'Invalid input data'}, 400
 
-        if 'email' in user_data or 'password' in user_data:
+        # Non-admin can only modify their own profile
+        if not is_admin and current_user_id != user_id:
+            return {'error': 'Unauthorized action'}, 403
+
+        # Non-admin cannot modify email or password
+        if not is_admin and ('email' in user_data or 'password' in user_data):
             return {'error': 'You cannot modify email or password.'}, 400
 
-        updated_user = facade.update_user(user_id, user_data)
+        # If email is being changed, ensure uniqueness
+        email = user_data.get('email')
+        if email:
+            existing_user = facade.get_user_by_email(email)
+            if existing_user and existing_user.id != user_id:
+                return {'error': 'Email is already in use'}, 400
+
+        updated_user = facade.update_user(user_id, user_data, is_admin=is_admin)
 
         if not updated_user:
             return {'error': 'User not found'}, 404
