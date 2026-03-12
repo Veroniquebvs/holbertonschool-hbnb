@@ -52,9 +52,9 @@ The **persistence**/subdirectory contains the in-memory repository. This will la
 
 **requirements.txt** will list all the Python packages needed for the project.
 
-**README.md** will contain a brief overview of the project.
+**README.md** contain a brief overview of the project.
 
-**__init__.py** This tells Python to treat these directories as importable packages.
+**__init__.py** tells Python to treat these directories as importable packages.
 
 
 ## Business Logic Layer
