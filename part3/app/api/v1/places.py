@@ -1,6 +1,6 @@
 from flask import request
 from flask_restx import Namespace, Resource, fields
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.services import facade
 
 api = Namespace('places', description='Place operations')
@@ -89,6 +89,11 @@ def _place_payload_detail(p):
     }
 
 
+def _is_admin():
+    claims = get_jwt()
+    return claims.get("is_admin", False)
+
+
 @api.route('/')
 class PlaceList(Resource):
     @api.expect(place_input_model, validate=True)
@@ -99,13 +104,12 @@ class PlaceList(Resource):
     def post(self):
         """Register a new place"""
         data = request.get_json(silent=True)
-
         if not isinstance(data, dict):
             return {"error": "Invalid input data"}, 400
 
         current_user = get_jwt_identity()
 
-        # Force owner_id from JWT, never trust client input
+        # Force owner_id from JWT
         data["owner_id"] = current_user
 
         try:
@@ -143,12 +147,13 @@ class PlaceResource(Resource):
     def put(self, place_id):
         """Update a place's information"""
         current_user = get_jwt_identity()
-        place = facade.get_place(place_id)
+        is_admin = _is_admin()
 
+        place = facade.get_place(place_id)
         if not place:
             return {"error": "Place not found"}, 404
 
-        if place.owner.id != current_user:
+        if not is_admin and place.owner.id != current_user:
             return {"error": "Unauthorized action"}, 403
 
         data = request.get_json(silent=True)
