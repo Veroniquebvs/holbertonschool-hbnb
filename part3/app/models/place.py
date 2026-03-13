@@ -1,6 +1,7 @@
 from app import db
 from app.models.base_model import BaseModel
 
+
 class Place(BaseModel):
     __tablename__ = 'places'
 
@@ -21,6 +22,7 @@ class Place(BaseModel):
         if description is not None and not isinstance(description, str):
             raise TypeError("description must be a string or None")
 
+        # price: float, positive
         try:
             price = float(price)
         except (TypeError, ValueError):
@@ -47,3 +49,14 @@ class Place(BaseModel):
         self.price = price
         self.latitude = latitude
         self.longitude = longitude
+        self.owner = owner
+        self.reviews = []
+        self.amenities = []
+
+    def add_review(self, review):
+        """Add a review to the place."""
+        self.reviews.append(review)
+
+    def add_amenity(self, amenity):
+        """Add an amenity to the place."""
+        self.amenities.append(amenity)
