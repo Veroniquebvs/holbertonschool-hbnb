@@ -1,6 +1,7 @@
 from app.models.base_model import BaseModel
 from app.models.user import User
 
+
 class Place(BaseModel):
     def __init__(self, title, description=None, price=0.0, latitude=0.0, longitude=0.0, owner=None):
         super().__init__()
@@ -15,7 +16,7 @@ class Place(BaseModel):
         if description is not None and not isinstance(description, str):
             raise TypeError("description must be a string or None")
 
-        #price: float, positive
+        # price: float, positive
         try:
             price = float(price)
         except (TypeError, ValueError):
@@ -51,7 +52,7 @@ class Place(BaseModel):
         self.owner = owner
         self.reviews = []
         self.amenities = []
-    
+
     def add_review(self, review):
         """Add a review to the place."""
         self.reviews.append(review)
