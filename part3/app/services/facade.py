@@ -1,29 +1,34 @@
 from app.persistence.repository import SQLAlchemyRepository
+from app.services.repositories.user_repository import UserRepository
 from app.models.user import User
 from app.models.amenity import Amenity
 from app.models.review import Review
-
 from app.models.place import Place
+
 
 class HBnBFacade:
     def __init__(self):
-        self.user_repo = SQLAlchemyRepository(User)
+        self.user_repo = UserRepository()
         self.review_repo = SQLAlchemyRepository(Review)
         self.amenity_repo = SQLAlchemyRepository(Amenity)
         self.place_repo = SQLAlchemyRepository(Place)
 
-        # Admin bootstrap user for local testing
-        admin = User(
-            first_name="Admin",
-            last_name="Root",
-            email="admin@test.com",
-            password="admin1234",
-            is_admin=True
-        )
-        self.user_repo.add(admin)
 
     def create_user(self, user_data):
+        if not isinstance(user_data, dict):
+            raise ValueError("Invalid input data")
+
+        email = user_data.get("email")
+        if email and self.user_repo.get_user_by_email(email.strip().lower()):
+            raise ValueError("Email already registered")
+
+        password = user_data.pop("password", None)
+        if not password:
+            raise ValueError("Password is required")
+
         user = User(**user_data)
+        user.hash_password(password)
+
         self.user_repo.add(user)
         return user
 
@@ -31,7 +36,7 @@ class HBnBFacade:
         return self.user_repo.get(user_id)
 
     def get_user_by_email(self, email):
-        return self.user_repo.get_by_attribute('email', email)
+        return self.user_repo.get_user_by_email(email)
 
     def get_all_users(self):
         return self.user_repo.get_all()
@@ -56,6 +61,7 @@ class HBnBFacade:
                 if key != "id"
             }
 
+        user.update(cleaned_data)
         self.user_repo.update(user_id, cleaned_data)
         return self.user_repo.get(user_id)
     # -------- AMENITY METHODS (Task 03) --------
