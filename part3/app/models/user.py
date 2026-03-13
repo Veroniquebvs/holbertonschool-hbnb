@@ -12,6 +12,9 @@ class User(BaseModel):
     password = db.Column(db.String(128), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
 
+    places = db.relationship('Place', backref='owner', lazy=True, cascade='all, delete-orphan')
+    reviews = db.relationship('Review', backref='user', lazy=True, cascade='all, delete-orphan')
+
     def hash_password(self, password):
         """Hashes the password before storing it."""
         if not isinstance(password, str) or not password:

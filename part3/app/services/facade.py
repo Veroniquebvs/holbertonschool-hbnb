@@ -64,7 +64,7 @@ class HBnBFacade:
         user.update(cleaned_data)
         self.user_repo.update(user_id, cleaned_data)
         return self.user_repo.get(user_id)
-    # -------- AMENITY METHODS (Task 03) --------
+    # -------- AMENITY METHODS  --------
 
     def _validate_amenity_data(self, amenity_data):
         """Raise ValueError if invalid."""
@@ -101,94 +101,102 @@ class HBnBFacade:
         self.amenity_repo.update(amenity_id, {"name": name})
         return amenity
 
-    # -------------- Review methods -----------------------
+    # -------------- REVIEW METHODS -----------------------
 
-    def _validate_review(self, review_data):
-        """Raise ValueError if review_data is invalid"""
-
+    def _validate_review_data(self, review_data):
+        """Validate review data for creation/update."""
         if not isinstance(review_data, dict):
-            raise TypeError("review_data must be a dictionary")
-
-        user_id = review_data.get("user_id")
-        place_id = review_data.get("place_id")
-        text = review_data.get("text")
-        rating = review_data.get("rating")
-
-        if user_id is None or place_id is None or text is None or rating is None:
-            raise ValueError("Missing required fields")
-
-        user = self.user_repo.get(user_id)
-        if user is None:
-            raise ValueError("User not found")
-
-        place = self.place_repo.get(place_id)
-        if place is None:
-            raise ValueError("Place not found")
-
-        if not isinstance(text, str) or not text.strip():
             raise ValueError("Invalid input data")
 
-        if not isinstance(rating, int) or rating < 1 or rating > 5:
-            raise ValueError("Rating must be an integer between 1 and 5")
+        validated = {}
 
-        return text.strip(), rating, place, user
+        if "text" in review_data:
+            text = review_data.get("text")
+            if not isinstance(text, str) or not text.strip():
+                raise ValueError("Invalid input data")
+            validated["text"] = text.strip()
+
+        if "rating" in review_data:
+            rating = review_data.get("rating")
+            if not isinstance(rating, int) or rating < 1 or rating > 5:
+                raise ValueError("Invalid input data")
+            validated["rating"] = rating
+
+        if "place_id" in review_data:
+            place_id = review_data.get("place_id")
+            if not isinstance(place_id, str) or not place_id.strip():
+                raise ValueError("Invalid input data")
+            validated["place_id"] = place_id.strip()
+
+        if "user_id" in review_data:
+            user_id = review_data.get("user_id")
+            if not isinstance(user_id, str) or not user_id.strip():
+                raise ValueError("Invalid input data")
+            validated["user_id"] = user_id.strip()
+
+        return validated
 
     def create_review(self, review_data):
-        text, rating, place, user = self._validate_review(review_data)
+        validated = self._validate_review_data(review_data)
 
-        if place.owner.id == user.id:
+        required_fields = {"text", "rating", "place_id", "user_id"}
+        if not required_fields.issubset(validated.keys()):
+            raise ValueError("Invalid input data")
+
+        user = self.user_repo.get(validated["user_id"])
+        if not user:
+            raise ValueError("User not found")
+
+        place = self.place_repo.get(validated["place_id"])
+        if not place:
+            raise ValueError("Place not found")
+
+        if place.owner_id == user.id:
             raise ValueError("You cannot review your own place.")
 
-        existing_review = self.get_review_by_user_and_place(user.id, place.id)
+        existing_review = Review.query.filter_by(
+            user_id=user.id,
+            place_id=place.id
+        ).first()
         if existing_review:
             raise ValueError("You have already reviewed this place.")
 
-        review = Review(text, rating, place, user)
+        review = Review(
+            text=validated["text"],
+            rating=validated["rating"],
+            place_id=validated["place_id"],
+            user_id=validated["user_id"]
+        )
+
         self.review_repo.add(review)
-        place.add_review(review)
         return review
 
     def get_review(self, review_id):
-        # Placeholder for logic to retrieve a review by ID
-        review = self.review_repo.get(review_id)
-
-        return review
+        return self.review_repo.get(review_id)
 
     def get_all_reviews(self):
-        # Placeholder for logic to retrieve all reviews
         return self.review_repo.get_all()
 
     def get_reviews_by_place(self, place_id):
-        # Placeholder for logic to retrieve all reviews for a specific place
         place = self.place_repo.get(place_id)
-        if place is None:
+        if not place:
             raise ValueError("Place not found")
         return place.reviews
 
-    def _validate_update_review(self, review_data):
-        """ Raise ValueError if update review_data is invalid"""
-        if not isinstance(review_data, dict):
-            raise TypeError("review_data must be a dictionary")
-
-        if "text" in review_data:
-            text = review_data["text"]
-            if not isinstance(text, str) or not text.strip():
-                raise ValueError("text must be a non-empty string")
-
-        if "rating" in review_data:
-            rating = review_data["rating"]
-            if not isinstance(rating, int) or rating < 1 or rating > 5:
-                raise ValueError("rating must be between 1 and 5")
-
-        return review_data
-
     def update_review(self, review_id, review_data):
         review = self.review_repo.get(review_id)
-        if review is None:
+        if not review:
             return None
 
-        update_review = self._validate_update_review(review_data)
-        self.review_repo.update(review_id, update_review)
+        validated = self._validate_review_data(review_data)
+
+        validated.pop("place_id", None)
+        validated.pop("user_id", None)
+
+        if not validated:
+            raise ValueError("Invalid input data")
+
+        self.review_repo.update(review_id, validated)
         return self.review_repo.get(review_id)
 
     def delete_review(self, review_id):
@@ -196,19 +204,8 @@ class HBnBFacade:
         if not review:
             return False
 
-        place = review.place
-        if place and hasattr(place, "reviews"):
-            place.reviews = [r for r in place.reviews if r.id != review_id]
-
         self.review_repo.delete(review_id)
         return True
-    
-    def get_review_by_user_and_place(self, user_id, place_id):
-        reviews = self.review_repo.get_all()
-        for review in reviews:
-            if review.user.id == user_id and review.place.id == place_id:
-                return review
-        return None
 
     # -------- PLACE METHODS --------
 
@@ -260,22 +257,48 @@ class HBnBFacade:
                 raise ValueError("Invalid input data")
             validated["longitude"] = longitude
 
+        if "owner_id" in place_data:
+            owner_id = place_data.get("owner_id")
+            if not isinstance(owner_id, str) or not owner_id.strip():
+                raise ValueError("Invalid input data")
+            validated["owner_id"] = owner_id.strip()
+
+        if "amenities" in place_data:
+            amenities = place_data.get("amenities")
+            if not isinstance(amenities, list):
+                raise ValueError("Invalid input data")
+            validated["amenities"] = amenities
+
         return validated
 
     def create_place(self, place_data):
         validated = self._validate_place_data(place_data)
 
-        required_fields = {"title", "price", "latitude", "longitude"}
+        required_fields = {"title", "price", "latitude", "longitude", "owner_id"}
         if not required_fields.issubset(validated.keys()):
             raise ValueError("Invalid input data")
+
+        owner = self.user_repo.get(validated["owner_id"])
+        if not owner:
+            raise ValueError("User not found")
+
+        amenities = []
+        for amenity_id in validated.get("amenities", []):
+            amenity = self.amenity_repo.get(amenity_id)
+            if not amenity:
+                raise ValueError("Amenity not found")
+            amenities.append(amenity)
 
         place = Place(
             title=validated["title"],
             description=validated.get("description"),
             price=validated["price"],
             latitude=validated["latitude"],
-            longitude=validated["longitude"]
+            longitude=validated["longitude"],
+            owner_id=validated["owner_id"]
         )
+
+        place.amenities = amenities
 
         self.place_repo.add(place)
         return place
@@ -293,7 +316,19 @@ class HBnBFacade:
 
         validated = self._validate_place_data(place_data)
 
-        if not validated:
+        validated.pop("owner_id", None)
+
+        if "amenities" in validated:
+            amenities = []
+            for amenity_id in validated["amenities"]:
+                amenity = self.amenity_repo.get(amenity_id)
+                if not amenity:
+                    raise ValueError("Amenity not found")
+                amenities.append(amenity)
+            place.amenities = amenities
+            validated.pop("amenities")
+
+        if not validated and "amenities" not in place_data:
             raise ValueError("Invalid input data")
 
         self.place_repo.update(place_id, validated)

@@ -34,7 +34,7 @@ place_input_model = api.model('PlaceInput', {
     'longitude': fields.Float(required=True, description='Longitude of the place'),
     'amenities': fields.List(
         fields.String,
-        required=True,
+        required=False,
         description="List of amenities IDs"
     )
 })
@@ -113,7 +113,7 @@ class PlaceList(Resource):
         data["owner_id"] = current_user
 
         try:
-            place, _ = facade.create_place(data)
+            place = facade.create_place(data)
         except ValueError:
             return {"error": "Invalid input data"}, 400
 
