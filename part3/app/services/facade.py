@@ -1,30 +1,34 @@
 from app.persistence.repository import SQLAlchemyRepository
+from app.services.repositories.user_repository import UserRepository
 from app.models.user import User
 from app.models.amenity import Amenity
 from app.models.review import Review
-
 from app.models.place import Place
 
 
 class HBnBFacade:
     def __init__(self):
-        self.user_repo = SQLAlchemyRepository(User)
+        self.user_repo = UserRepository()
         self.review_repo = SQLAlchemyRepository(Review)
         self.amenity_repo = SQLAlchemyRepository(Amenity)
         self.place_repo = SQLAlchemyRepository(Place)
 
-        # Admin bootstrap user for local testing
-        admin = User(
-            first_name="Admin",
-            last_name="Root",
-            email="admin@test.com",
-            password="admin1234",
-            is_admin=True
-        )
-        self.user_repo.add(admin)
 
     def create_user(self, user_data):
+        if not isinstance(user_data, dict):
+            raise ValueError("Invalid input data")
+
+        email = user_data.get("email")
+        if email and self.user_repo.get_user_by_email(email.strip().lower()):
+            raise ValueError("Email already registered")
+
+        password = user_data.pop("password", None)
+        if not password:
+            raise ValueError("Password is required")
+
         user = User(**user_data)
+        user.hash_password(password)
+
         self.user_repo.add(user)
         return user
 
@@ -32,7 +36,7 @@ class HBnBFacade:
         return self.user_repo.get(user_id)
 
     def get_user_by_email(self, email):
-        return self.user_repo.get_by_attribute('email', email)
+        return self.user_repo.get_user_by_email(email)
 
     def get_all_users(self):
         return self.user_repo.get_all()
@@ -57,6 +61,7 @@ class HBnBFacade:
                 if key != "id"
             }
 
+        user.update(cleaned_data)
         self.user_repo.update(user_id, cleaned_data)
         return self.user_repo.get(user_id)
     # -------- AMENITY METHODS (Task 03) --------
@@ -205,51 +210,75 @@ class HBnBFacade:
                 return review
         return None
 
-    # -------- PLACE METHODS (Task Place) --------
+    # -------- PLACE METHODS --------
 
-    def create_place(self, place_data):
+    def _validate_place_data(self, place_data):
+        """Validate place data for creation/update."""
         if not isinstance(place_data, dict):
             raise ValueError("Invalid input data")
 
-        title = place_data.get("title")
-        description = place_data.get("description", None)
-        price = place_data.get("price")
-        latitude = place_data.get("latitude")
-        longitude = place_data.get("longitude")
-        owner_id = place_data.get("owner_id")
-        amenities_ids = place_data.get("amenities", [])
+        validated = {}
 
-        if title is None or price is None or latitude is None or longitude is None or not owner_id:
-            raise ValueError("Invalid input data")
-
-        if not isinstance(amenities_ids, list):
-            raise ValueError("Invalid input data")
-
-        owner = self.user_repo.get(owner_id)
-        if not owner:
-            raise ValueError("Invalid input data")
-
-        amenities = []
-        for aid in amenities_ids:
-            a = self.amenity_repo.get(aid)
-            if not a:
+        if "title" in place_data:
+            title = place_data.get("title")
+            if not isinstance(title, str) or not title.strip():
                 raise ValueError("Invalid input data")
-            amenities.append(a)
+            if len(title.strip()) > 100:
+                raise ValueError("Invalid input data")
+            validated["title"] = title.strip()
+
+        if "description" in place_data:
+            description = place_data.get("description")
+            if description is not None and not isinstance(description, str):
+                raise ValueError("Invalid input data")
+            validated["description"] = description
+
+        if "price" in place_data:
+            try:
+                price = float(place_data.get("price"))
+            except (TypeError, ValueError):
+                raise ValueError("Invalid input data")
+            if price <= 0:
+                raise ValueError("Invalid input data")
+            validated["price"] = price
+
+        if "latitude" in place_data:
+            try:
+                latitude = float(place_data.get("latitude"))
+            except (TypeError, ValueError):
+                raise ValueError("Invalid input data")
+            if latitude < -90.0 or latitude > 90.0:
+                raise ValueError("Invalid input data")
+            validated["latitude"] = latitude
+
+        if "longitude" in place_data:
+            try:
+                longitude = float(place_data.get("longitude"))
+            except (TypeError, ValueError):
+                raise ValueError("Invalid input data")
+            if longitude < -180.0 or longitude > 180.0:
+                raise ValueError("Invalid input data")
+            validated["longitude"] = longitude
+
+        return validated
+
+    def create_place(self, place_data):
+        validated = self._validate_place_data(place_data)
+
+        required_fields = {"title", "price", "latitude", "longitude"}
+        if not required_fields.issubset(validated.keys()):
+            raise ValueError("Invalid input data")
 
         place = Place(
-            title=title,
-            description=description,
-            price=price,
-            latitude=latitude,
-            longitude=longitude,
-            owner=owner
+            title=validated["title"],
+            description=validated.get("description"),
+            price=validated["price"],
+            latitude=validated["latitude"],
+            longitude=validated["longitude"]
         )
 
-        place.amenities = amenities
-
         self.place_repo.add(place)
-
-        return place, owner_id
+        return place
 
     def get_place(self, place_id):
         return self.place_repo.get(place_id)
@@ -258,30 +287,14 @@ class HBnBFacade:
         return self.place_repo.get_all()
 
     def update_place(self, place_id, place_data):
-        if not isinstance(place_data, dict):
-            raise ValueError("Invalid input data")
-
         place = self.place_repo.get(place_id)
         if not place:
             return None
 
-        if "amenities" in place_data:
-            amenities_ids = place_data.get("amenities")
-            if not isinstance(amenities_ids, list):
-                raise ValueError("Invalid input data")
-            amenities = []
-            for aid in amenities_ids:
-                a = self.amenity_repo.get(aid)
-                if not a:
-                    raise ValueError("Invalid input data")
-                amenities.append(a)
-            place.amenities = amenities
+        validated = self._validate_place_data(place_data)
 
-        allowed = {}
-        for key in ("title", "description", "price", "latitude", "longitude"):
-            if key in place_data:
-                allowed[key] = place_data[key]
+        if not validated:
+            raise ValueError("Invalid input data")
 
-        self.place_repo.update(place_id, allowed)
-
+        self.place_repo.update(place_id, validated)
         return self.place_repo.get(place_id)
