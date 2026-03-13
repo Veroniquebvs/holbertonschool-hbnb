@@ -210,3 +210,4 @@ __marimo__/
 test_app_models_user.py
 test_app_place_with_relation.py
 test_models_amenity.py
+test_user_hash.py
