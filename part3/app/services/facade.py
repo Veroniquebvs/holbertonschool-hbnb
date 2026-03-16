@@ -143,7 +143,7 @@ class HBnBFacade:
         if existing_review:
             raise ValueError("You have already reviewed this place.")
 
-        review = Review(text, rating, place, user)
+        review = Review(text=text, rating=rating, user=user, place=place)
         self.review_repo.add(review)
         place.add_review(review)
         return review
@@ -269,12 +269,14 @@ class HBnBFacade:
         if not required_fields.issubset(validated.keys()):
             raise ValueError("Invalid input data")
 
+        owner = self.user_repo.get(place_data.get("owner_id"))
         place = Place(
             title=validated["title"],
             description=validated.get("description"),
             price=validated["price"],
             latitude=validated["latitude"],
-            longitude=validated["longitude"]
+            longitude=validated["longitude"],
+            owner=owner
         )
 
         self.place_repo.add(place)

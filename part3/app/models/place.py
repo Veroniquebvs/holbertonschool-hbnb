@@ -11,7 +11,8 @@ class Place(BaseModel):
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
 
-    def __init__(self, title, description=None, price=0.0, latitude=0.0, longitude=0.0):
+    def __init__(self, title, description=None, price=0.0, latitude=0.0,
+                 longitude=0.0, owner=None):
         super().__init__()
 
         if not isinstance(title, str) or not title.strip():
