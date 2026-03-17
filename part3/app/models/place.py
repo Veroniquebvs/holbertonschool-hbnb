@@ -1,6 +1,12 @@
 from app import db
 from app.models.base_model import BaseModel
 
+place_amenity = db.Table(
+    'place_amenity',
+    db.Column('place_id', db.String(36), db.ForeignKey('places.id'), primary_key=True),
+    db.Column('amenity_id', db.String(36), db.ForeignKey('amenities.id'), primary_key=True)
+)
+
 
 class Place(BaseModel):
     __tablename__ = 'places'
@@ -23,7 +29,6 @@ class Place(BaseModel):
         if description is not None and not isinstance(description, str):
             raise TypeError("description must be a string or None")
 
-        # price: float, positive
         try:
             price = float(price)
         except (TypeError, ValueError):
@@ -45,19 +50,12 @@ class Place(BaseModel):
         if longitude < -180.0 or longitude > 180.0:
             raise ValueError("longitude must be between -180 and 180")
 
+        if not owner_id or not isinstance(owner_id, str):
+            raise ValueError("owner_id is required")
+
         self.title = title.strip()
         self.description = description
         self.price = price
         self.latitude = latitude
         self.longitude = longitude
-        self.owner = owner
-        self.reviews = []
-        self.amenities = []
-
-    def add_review(self, review):
-        """Add a review to the place."""
-        self.reviews.append(review)
-
-    def add_amenity(self, amenity):
-        """Add an amenity to the place."""
-        self.amenities.append(amenity)
+        self.owner_id = owner_id
