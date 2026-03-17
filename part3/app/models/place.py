@@ -17,17 +17,8 @@ class Place(BaseModel):
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
 
-    owner_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
-
-    reviews = db.relationship('Review', backref='place', lazy=True, cascade='all, delete-orphan')
-    amenities = db.relationship(
-        'Amenity',
-        secondary=place_amenity,
-        lazy='subquery',
-        backref=db.backref('places', lazy=True)
-    )
-
-    def __init__(self, title, description=None, price=0.0, latitude=0.0, longitude=0.0, owner_id=None):
+    def __init__(self, title, description=None, price=0.0, latitude=0.0,
+                 longitude=0.0, owner=None):
         super().__init__()
 
         if not isinstance(title, str) or not title.strip():

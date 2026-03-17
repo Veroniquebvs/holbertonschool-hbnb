@@ -44,7 +44,7 @@ The **models**/subdirectory contains the business logic classes (for example, us
 
 The **services**/subdirectory is where the Facade model is implemented, managing the interaction between the layers.
 
-The **persistence**/subdirectory contains the in-memory repository. This will later be replaced by a solution using a database with SQLAlchemy.
+The **persistence**/subdirectory contains the in-memory repository. This will later be replaced, in part 3, by a solution using a database with SQLAlchemy.
 
 **run.py** is the entry point for running the Flask application.
 
@@ -52,7 +52,7 @@ The **persistence**/subdirectory contains the in-memory repository. This will la
 
 **requirements.txt** will list all the Python packages needed for the project.
 
-**README.md** contain a brief overview of the project.
+**README.md** you are reading this.
 
 **__init__.py** tells Python to treat these directories as importable packages.
 
@@ -156,11 +156,15 @@ Amenity creation test passed!
 pip install -r requirements.txt
 ```
 
-`requirements.txt` file caontains:
+`requirements.txt` file contains:
 
 ```
 flask
 flask-restx
+flask-bcrypt
+flask-jwt-extended
+sqlalchemy
+flask-sqlalchemy
 ```
 
 ## Launch the application
@@ -177,3 +181,8 @@ The application is based on three layers that communicate via the **Facade patte
 - **Business Logic (Models + Facade)**: processes data and applies business rules
 - **Persistence (Repository)**: stores and retrieves objects (currently in memory, database in part 3)
 
+## Authors
+
+Benjamin BOMMIER
+
+Veronique BEAUVAIS

@@ -161,13 +161,7 @@ class HBnBFacade:
         if existing_review:
             raise ValueError("You have already reviewed this place.")
 
-        review = Review(
-            text=validated["text"],
-            rating=validated["rating"],
-            place_id=validated["place_id"],
-            user_id=validated["user_id"]
-        )
-
+        review = Review(text=text, rating=rating, user=user, place=place)
         self.review_repo.add(review)
         return review
 
@@ -278,24 +272,14 @@ class HBnBFacade:
         if not required_fields.issubset(validated.keys()):
             raise ValueError("Invalid input data")
 
-        owner = self.user_repo.get(validated["owner_id"])
-        if not owner:
-            raise ValueError("User not found")
-
-        amenities = []
-        for amenity_id in validated.get("amenities", []):
-            amenity = self.amenity_repo.get(amenity_id)
-            if not amenity:
-                raise ValueError("Amenity not found")
-            amenities.append(amenity)
-
+        owner = self.user_repo.get(place_data.get("owner_id"))
         place = Place(
             title=validated["title"],
             description=validated.get("description"),
             price=validated["price"],
             latitude=validated["latitude"],
             longitude=validated["longitude"],
-            owner_id=validated["owner_id"]
+            owner=owner
         )
 
         place.amenities = amenities
