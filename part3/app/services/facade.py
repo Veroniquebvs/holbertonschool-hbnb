@@ -13,7 +13,6 @@ class HBnBFacade:
         self.amenity_repo = SQLAlchemyRepository(Amenity)
         self.place_repo = SQLAlchemyRepository(Place)
 
-
     def create_user(self, user_data):
         if not isinstance(user_data, dict):
             raise ValueError("Invalid input data")
@@ -36,7 +35,9 @@ class HBnBFacade:
         return self.user_repo.get(user_id)
 
     def get_user_by_email(self, email):
-        return self.user_repo.get_user_by_email(email)
+        if not isinstance(email, str):
+            return None
+        return self.user_repo.get_user_by_email(email.strip().lower())
 
     def get_all_users(self):
         return self.user_repo.get_all()
@@ -64,10 +65,10 @@ class HBnBFacade:
         user.update(cleaned_data)
         self.user_repo.update(user_id, cleaned_data)
         return self.user_repo.get(user_id)
-    # -------- AMENITY METHODS  --------
+
+    # -------- AMENITY METHODS --------
 
     def _validate_amenity_data(self, amenity_data):
-        """Raise ValueError if invalid."""
         if not isinstance(amenity_data, dict):
             raise ValueError("Invalid input data")
 
@@ -104,7 +105,6 @@ class HBnBFacade:
     # -------------- REVIEW METHODS -----------------------
 
     def _validate_review_data(self, review_data):
-        """Validate review data for creation/update."""
         if not isinstance(review_data, dict):
             raise ValueError("Invalid input data")
 
@@ -161,7 +161,12 @@ class HBnBFacade:
         if existing_review:
             raise ValueError("You have already reviewed this place.")
 
-        review = Review(text=text, rating=rating, user=user, place=place)
+        review = Review(
+            text=validated["text"],
+            rating=validated["rating"],
+            place_id=validated["place_id"],
+            user_id=validated["user_id"]
+        )
         self.review_repo.add(review)
         return review
 
@@ -183,7 +188,6 @@ class HBnBFacade:
             return None
 
         validated = self._validate_review_data(review_data)
-
         validated.pop("place_id", None)
         validated.pop("user_id", None)
 
@@ -204,7 +208,6 @@ class HBnBFacade:
     # -------- PLACE METHODS --------
 
     def _validate_place_data(self, place_data):
-        """Validate place data for creation/update."""
         if not isinstance(place_data, dict):
             raise ValueError("Invalid input data")
 
@@ -272,14 +275,24 @@ class HBnBFacade:
         if not required_fields.issubset(validated.keys()):
             raise ValueError("Invalid input data")
 
-        owner = self.user_repo.get(place_data.get("owner_id"))
+        owner = self.user_repo.get(validated["owner_id"])
+        if not owner:
+            raise ValueError("User not found")
+
+        amenities = []
+        for amenity_id in validated.get("amenities", []):
+            amenity = self.amenity_repo.get(amenity_id)
+            if not amenity:
+                raise ValueError("Amenity not found")
+            amenities.append(amenity)
+
         place = Place(
             title=validated["title"],
             description=validated.get("description"),
             price=validated["price"],
             latitude=validated["latitude"],
             longitude=validated["longitude"],
-            owner=owner
+            owner_id=validated["owner_id"]
         )
 
         place.amenities = amenities
@@ -299,7 +312,6 @@ class HBnBFacade:
             return None
 
         validated = self._validate_place_data(place_data)
-
         validated.pop("owner_id", None)
 
         if "amenities" in validated:
