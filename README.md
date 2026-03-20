@@ -44,7 +44,7 @@ The **models**/subdirectory contains the business logic classes (for example, us
 
 The **services**/subdirectory is where the Facade model is implemented, managing the interaction between the layers.
 
-The **persistence**/subdirectory contains the in-memory repository. This will later be replaced, in part 3, by a solution using a database with SQLAlchemy.
+The **persistence**/subdirectory contains the in-memory repository. This will be replaced in Part 3 by a solution using a database with SQLAlchemy.
 
 **run.py** is the entry point for running the Flask application.
 
@@ -52,7 +52,7 @@ The **persistence**/subdirectory contains the in-memory repository. This will la
 
 **requirements.txt** will list all the Python packages needed for the project.
 
-**README.md** you are reading this.
+**README.md** this file describes the project.
 
 **__init__.py** tells Python to treat these directories as importable packages.
 
@@ -149,8 +149,36 @@ test_amenity_creation()
 veronique@DESKTOP-2QQLIC1:~/hbnb/holbertonschool-hbnb/part2$ python test_models_amenity.py 
 Amenity creation test passed!
 ```
+## Prerequisites
 
-## Install the dependencies
+Make sure you have the following installed:
+
+- Python 3.10 or higher
+- pip (Python package manager)
+
+You can check your Python version with:
+
+```bash
+python3 --version
+```
+
+## Installation
+
+1. Clone the repository :
+
+```bash
+git clone https://github.com/Veroniquebvs/holbertonschool-hbnb.git
+cd hbnb
+```
+2. Create a virtual environment (recommended)
+
+```bash
+python3 -m venv venv
+source venv/bin/activate  # On Linux/Mac
+venv\Scripts\activate     # On Windows
+```
+
+3. Install the dependencies
 
 ```
 pip install -r requirements.txt
@@ -167,10 +195,14 @@ sqlalchemy
 flask-sqlalchemy
 ```
 
-## Launch the application
+## Run the application
 
-```
+```bash
 python run.py
+```
+The API will be available at:
+```
+http://127.0.0.1:5000/
 ```
 
 ## Architecture
