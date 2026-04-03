@@ -384,3 +384,34 @@ body.dark-mode textarea {
         height: 150px;
     }
 }
+
+.welcome-banner {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+}
+
+.welcome-banner h2 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.welcome-banner p {
+    color: #8b3a52;
+    font-size: 1.1rem;
+}
+
+.place-card:hover {
+    transform: translateY(-5px);
+    transition: transform 0.3s ease;
+    box-shadow: 0 8px 20px rgba(201, 114, 138, 0.2);
+}
+
+.place-card {
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
