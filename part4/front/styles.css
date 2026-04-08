@@ -406,20 +406,54 @@ body.dark-mode textarea {
     }
 }
 
+/* --- SECTION BANNIÈRE SEXY BNB --- */
 .welcome-banner {
     text-align: center;
-    margin-bottom: 2rem;
-    padding: 1.5rem;
+    margin-bottom: 3rem;
+    padding: 2rem;
+    /* On garde ton animation car elle est super ! */
+    animation: fadeIn 1s ease; 
 }
 
 .welcome-banner h2 {
-    font-size: 2rem;
+    font-size: 3.5rem;
+    color: #8b3a52;                /* Ton bordeaux chic */
+    margin-bottom: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-family: "Georgia", serif; /* Police élégante */
+    
+    /* Lueur subtile pour le mode clair */
+    text-shadow: 0 0 10px rgba(201, 114, 138, 0.25), 
+                 0 0 20px rgba(201, 114, 138, 0.1);
+}
+
+.welcome-banner p:first-of-type {
+    font-size: 1.5rem;
+    color: #c9728a;                /* Ton rose signature */
+    font-style: italic;            /* Côté sensuel */
     margin-bottom: 0.5rem;
 }
 
-.welcome-banner p {
+.welcome-banner p:last-of-type {
     color: #8b3a52;
-    font-size: 1.1rem;
+    font-size: 1rem;
+    opacity: 0.8;                  /* Plus discret pour la description */
+}
+
+/* On garde ton animation fadeIn telle quelle en bas de ton fichier */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+body.dark-mode .welcome-banner h2 {
+    color: #f5a0b5; /* Rose plus clair pour briller dans le noir */
+    
+    /* Effet Néon Intense pour le Dark Mode */
+    text-shadow: 0 0 5px #c9728a,      /* Halo intérieur */
+                 0 0 15px rgba(201, 114, 138, 0.6), /* Halo principal */
+                 0 0 25px rgba(201, 114, 138, 0.4); /* Halo extérieur diffus */
 }
 
 .place-card:hover {
