@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Add User</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" href="images/pink_airbnb.jpg" type="image/png">
 </head>
@@ -13,30 +13,33 @@
         <a href="login.html">
             <img src="images/pink_airbnb.jpg" class="logo" alt="logo pink airbnb">
         </a>
-            <div class="header-right">
+        <div class="header-right">
             <a href="login.html" class="login-button">Login</a>
+            <button id="logout-btn" style="display:none;">Logout</button>
             <button id="dark-mode-btn"></button>
         </div>
     </header>
     <nav>
-        <a href="index.html"> Home </a>
+        <a href="index.html">Home</a>
     </nav>
     <main>
         <div class="login-container">
-            <form id="login-form">
-                <h2>Glad to see you!</h2>
+            <h1>Create an account</h1>
+            <form id="add-user-form">
+                <label for="first_name">First name:</label>
+                <input type="text" id="first_name" name="first_name" required>
+
+                <label for="last_name">Last name:</label>
+                <input type="text" id="last_name" name="last_name" required>
+
                 <label for="email">Email:</label>
                 <input type="email" id="email" name="email" required>
-            
+
                 <label for="password">Password:</label>
                 <input type="password" id="password" name="password" required>
-            
-                <button type="submit">Login</button>
+
+                <button type="submit">Create account</button>
             </form>
-            <p style="text-align:center; margin-top:1rem;">
-                No account yet? 
-                <a href="add_user.html" style="color:#c9728a;">Create one here</a>
-            </p>
         </div>
     </main>
     <script src="scripts.js"></script>

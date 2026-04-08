@@ -59,13 +59,8 @@ class UserList(Resource):
     @api.expect(user_model, validate=True)
     @api.response(201, 'User successfully created')
     @api.response(400, 'Email already registered')
-    @api.response(403, 'Admin privileges required')
-    @jwt_required()
     def post(self):
-        """Register a new user (admin only)"""
-        if not _is_admin():
-            return {'error': 'Admin privileges required'}, 403
-
+        """Register a new user"""
         user_data = api.payload
         if not isinstance(user_data, dict):
             return {'error': 'Invalid input data'}, 400

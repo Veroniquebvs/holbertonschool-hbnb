@@ -32,6 +32,7 @@ place_input_model = api.model('PlaceInput', {
     'price': fields.Float(required=True, description='Price per night'),
     'latitude': fields.Float(required=True, description='Latitude of the place'),
     'longitude': fields.Float(required=True, description='Longitude of the place'),
+    'image_url': fields.String(description='URL of the place image'),
     'amenities': fields.List(
         fields.String,
         required=False,
@@ -59,7 +60,8 @@ def _place_payload_list(p):
         "description": p.description,
         "price": p.price,
         "latitude": p.latitude,
-        "longitude": p.longitude
+        "longitude": p.longitude,
+        "image_url": p.image_url
     }
 
 
@@ -72,6 +74,7 @@ def _place_payload_detail(p):
         "price": p.price,
         "latitude": p.latitude,
         "longitude": p.longitude,
+        "image_url": p.image_url,
         "owner": {
             "id": owner.id,
             "first_name": owner.first_name,

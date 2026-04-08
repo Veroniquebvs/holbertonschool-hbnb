@@ -266,6 +266,12 @@ class HBnBFacade:
                 raise ValueError("Invalid input data")
             validated["amenities"] = amenities
 
+        if "image_url" in place_data:
+            image_url = place_data.get("image_url")
+            if image_url is not None and not isinstance(image_url, str):
+                raise ValueError("Invalid input data")
+            validated["image_url"] = image_url
+
         return validated
 
     def create_place(self, place_data):
@@ -292,7 +298,8 @@ class HBnBFacade:
             price=validated["price"],
             latitude=validated["latitude"],
             longitude=validated["longitude"],
-            owner_id=validated["owner_id"]
+            owner_id=validated["owner_id"],
+            image_url=validated.get("image_url")
         )
 
         place.amenities = amenities

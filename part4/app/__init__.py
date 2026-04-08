@@ -28,6 +28,18 @@ def create_app(config_class=DevelopmentConfig):
         from app.models import review
         db.create_all()
 
+        # Create admin user if not exists
+        from app.services import facade
+        admin = facade.get_user_by_email("admin@example.com")
+        if not admin:
+            facade.create_user({
+                "first_name": "Admin",
+                "last_name": "User",
+                "email": "admin@example.com",
+                "password": "Admin123",
+                "is_admin": True
+            })
+
     from app.api.v1.users import api as users_ns
     from app.api.v1.amenities import api as amenities_ns
     from app.api.v1.places import api as places_ns
