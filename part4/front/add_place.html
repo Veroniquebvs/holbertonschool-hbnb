@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Place</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="images/pink_airbnb.jpg" type="image/png">
+</head>
+<body>
+    <header>
+        <div></div>
+        <a href="login.html">
+            <img src="images/pink_airbnb.jpg" class="logo" alt="logo pink airbnb">
+        </a>
+        <div class="header-right">
+            <a href="login.html" class="login-button">Login</a>
+            <button id="logout-btn" style="display:none;">Logout</button>
+            <button id="dark-mode-btn"></button>
+        </div>
+    </header>
+    <nav>
+        <a href="index.html">Home</a>
+    </nav>
+    <main>
+        <div class="place-container">
+            <h1>Add a Place</h1>
+            <form id="add-place-form">
+
+                <label for="title">Title:</label>
+                <input type="text" id="title" name="title" required>
+
+                <label for="description">Description:</label>
+                <textarea id="description" name="description" required></textarea>
+
+                <label for="price">Price per night ($):</label>
+                <input type="number" id="price" name="price" min="1" required>
+
+                <label for="latitude">Latitude:</label>
+                <input type="number" id="latitude" name="latitude" step="any" required>
+
+                <label for="longitude">Longitude:</label>
+                <input type="number" id="longitude" name="longitude" step="any" required>
+
+                <label for="image_url">Image URL:</label>
+                <input type="url" id="image_url" name="image_url" placeholder="https://exemple.com/photo.jpg">
+
+                <label>Amenities:</label>
+                <div id="amenities-list"></div>
+
+                <button type="submit">Add Place</button>
+            </form>
+        </div>
+    </main>
+    <script src="scripts.js"></script>
+    <footer>
+        <p>&copy; 2026 Hbnb Evolution. All rights reserved.</p>
+        <img src="images/18.png" alt="Interdit moins 18 ans" class="footer-icon">
+    </footer>
+</body>
+</html>

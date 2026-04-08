@@ -2,6 +2,13 @@
 =========== FUNCTIONS ==========
 */
 
+// Fonction pour jouer le son du fouet
+function playWhip() {
+    const whipSound = new Audio("sounds/fouet.mp3");
+    whipSound.currentTime = 0; // Réinitialise pour pouvoir cliquer plusieurs fois vite
+    whipSound.play().catch(err => console.log("Audio bloqué ou introuvable:", err));
+}
+
 // LOGIN
 async function loginUser(email, password) {
     const response = await fetch('http://localhost:5000/api/v1/auth/login', {
@@ -57,22 +64,16 @@ async function fetchPlaces(token) {
     if (!container) return;
     container.innerHTML = "";
 
-    const placeImages = {
-        "8018ba82-3b86-42de-96b5-b4d03d57e0bd": "images/paris_pink.jpg",
-        "52ad2451-2229-49af-a414-7633fc2e9622": "images/maison_bord_mer.jpg",
-        "808b5f78-6b7b-4252-9ff5-7100e36ad0d3": "images/studio.jpg"
-    };
-
     places.forEach(place => {
         const card = document.createElement("article");
         card.classList.add("place-card");
 
         card.innerHTML = `
-            <img src="${placeImages[place.id] || 'images/default.jpg'}" alt="${place.title}" class="place-img">
+            <img src="${place.image_url || 'images/default.jpg'}" alt="${place.title}" class="place-img">
             <h3>${place.title}</h3>
             <p>Price: $${place.price}</p>
             <p>${place.description}</p>
-            <a href="place.html?id=${place.id}" class="details-button">View Details</a>
+            <a href="place.html?id=${place.id}" class="details-button click-sound">View Details</a>
         `;
 
         container.appendChild(card);
@@ -129,14 +130,8 @@ function displayPlaceDetails(place) {
     if (!container) return;
     container.innerHTML = "";
 
-    const placeImages = {
-        "8018ba82-3b86-42de-96b5-b4d03d57e0bd": "images/paris_pink.jpg",
-        "52ad2451-2229-49af-a414-7633fc2e9622": "images/maison_bord_mer.jpg",
-        "808b5f78-6b7b-4252-9ff5-7100e36ad0d3": "images/studio.jpg"
-    };
-
     const img = document.createElement("img");
-    img.src = placeImages[place.id] || "images/default.jpg";
+    img.src = place.image_url || "images/default.jpg";
     img.alt = place.title;
     img.classList.add("place-img");
     container.appendChild(img);
@@ -154,7 +149,7 @@ function displayPlaceDetails(place) {
     amenities.innerHTML = `
         <h3>Amenities</h3>
         <ul class="amenities-list">
-            ${place.amenities.map(a => `<li>🌸 ${a.name}</li>`).join("")}
+            ${place.amenities.map(a => `<li>⛓️ ${a.name}</li>`).join("")}
         </ul>
 `;
 
@@ -237,6 +232,48 @@ async function fetchCurrentUser(token) {
     return response.json();
 }
 
+// FETCH AMENITIES
+async function fetchAmenities(token) {
+    const response = await fetch("http://localhost:5000/api/v1/amenities/", {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token && { "Authorization": `Bearer ${token}` })
+        }
+    });
+
+    if (!response.ok) throw new Error("Failed to fetch amenities");
+    return response.json();
+}
+
+// SUBMIT PLACE
+async function submitPlace(token, placeData) {
+    const response = await fetch("http://localhost:5000/api/v1/places/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(placeData)
+    });
+
+    if (!response.ok) throw new Error("Failed to create place");
+    return response.json();
+}
+
+// CREATE USER
+async function createUser(userData) {
+    const response = await fetch("http://localhost:5000/api/v1/users/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(userData)
+    });
+
+    if (!response.ok) throw new Error("Failed to create user");
+    return response.json();
+}
 /*
 =========== MAIN CODE ==========
 */
@@ -246,10 +283,17 @@ document.addEventListener('DOMContentLoaded', async() => {
     const token = getCookie("token");
     const placeId = getPlaceIdFromURL();
     const addReviewSection = document.getElementById("add-review");
+
+    // Redirect to login if not authenticated on index.html
+    if (!token && document.getElementById("places-list")) {
+        window.location.href = 'login.html';
+        return;
+    }
     // LOGIN
     if (loginForm) {
         loginForm.addEventListener('submit', async (event) => {
             event.preventDefault();
+            playWhip();
             const email = document.getElementById("email").value;
             const password = document.getElementById("password").value;
 
@@ -304,6 +348,7 @@ document.addEventListener('DOMContentLoaded', async() => {
     
         reviewForm.addEventListener('submit', async (event) => {
             event.preventDefault();
+            playWhip();
 
             const reviewText = document.getElementById('comment').value;
             const reviewRating = parseInt(document.getElementById('rating').value);
@@ -348,30 +393,37 @@ document.addEventListener('DOMContentLoaded', async() => {
 
     // Display place info on add_review page
     if (addReviewSection && placeId) {
-        const placeImages = {
-            "8018ba82-3b86-42de-96b5-b4d03d57e0bd": "images/paris_pink.jpg",
-            "52ad2451-2229-49af-a414-7633fc2e9622": "images/maison_bord_mer.jpg",
-            "808b5f78-6b7b-4252-9ff5-7100e36ad0d3": "images/studio.jpg"
-        };
 
-        await fetchPlaceDetails(token, placeId);
-        const placeTitle = document.querySelector("#place-details h2");
-        if (placeTitle) {
+        try {
+            const response = await fetch(`http://localhost:5000/api/v1/places/${placeId}`);
+            const place = await response.json();
+
+            // Création du bloc place
             const infoEl = document.createElement("div");
             infoEl.classList.add("place-card");
+
             infoEl.innerHTML = `
-                <img src="${placeImages[placeId] || 'images/default.jpg'}" alt="${placeTitle.textContent}" class="place-img">
-                <h2>${placeTitle.textContent}</h2>
+                <img src="${place.image_url || 'images/default.jpg'}" 
+                    alt="${place.title}" 
+                    class="place-img">
+
+                <h2>${place.title}</h2>
+                <p>${place.description}</p>
             `;
+        // Ajoute au dessus du formulaire
             addReviewSection.insertBefore(infoEl, addReviewSection.firstChild);
-        }
-        // welcome message
-        if (token) {
-        const user = await fetchCurrentUser(token);
-        const welcomeEl = document.createElement("p");
-        welcomeEl.classList.add("welcome-message");
-        welcomeEl.textContent = `Hello ${user.first_name} ! 🌸 We'd love to hear your thoughts — share your experience below!`;
-        addReviewSection.insertBefore(welcomeEl, addReviewSection.firstChild);
+
+        // Message utilisateur
+            if (token) {
+                const user = await fetchCurrentUser(token);
+                const welcomeEl = document.createElement("p");
+                welcomeEl.classList.add("welcome-message");
+                welcomeEl.textContent = `Hello ${user.first_name} 🌹 Share your experience with this place!`;
+                    addReviewSection.insertBefore(welcomeEl, infoEl);
+            }
+
+        } catch (error) {
+            console.error("Failed to load place info", error);
         }
     }
 
@@ -402,6 +454,82 @@ document.addEventListener('DOMContentLoaded', async() => {
             const isDark = document.body.classList.contains("dark-mode");
             darkModeBtn.innerHTML = isDark ? "☀" : "☾";
             localStorage.setItem("darkMode", isDark);
+        });
+    }
+
+    // ADD PLACE FORM
+    const addPlaceForm = document.getElementById("add-place-form");
+    if (addPlaceForm) {
+        const secureToken = checkAuthentication();
+
+        // Load amenities as checkboxes
+        try {
+            const amenities = await fetchAmenities(secureToken);
+            const amenitiesContainer = document.getElementById("amenities-list");
+            amenities.forEach(amenity => {
+                const label = document.createElement("label");
+                label.style.display = "flex";
+                label.style.alignItems = "center";
+                label.style.gap = "0.5rem";
+                label.style.margin = "0.3rem 0";
+                label.innerHTML = `
+                    <input type="checkbox" value="${amenity.id}"> 🌸 ${amenity.name}
+                `;
+                amenitiesContainer.appendChild(label);
+            });
+        } catch (error) {
+            console.error("Failed to load amenities", error);
+        }
+
+        // Submit form
+        addPlaceForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            playWhip();
+
+            const selectedAmenities = Array.from(
+                document.querySelectorAll("#amenities-list input[type='checkbox']:checked")
+            ).map(cb => cb.value);
+
+            const placeData = {
+                title: document.getElementById("title").value,
+                description: document.getElementById("description").value,
+                price: parseFloat(document.getElementById("price").value),
+                latitude: parseFloat(document.getElementById("latitude").value),
+                longitude: parseFloat(document.getElementById("longitude").value),
+                amenities: selectedAmenities,
+                image_url: document.getElementById("image_url").value
+            };
+
+            try {
+                await submitPlace(secureToken, placeData);
+                alert("Place added successfully!");
+                window.location.href = "index.html";
+            } catch (error) {
+                alert("Failed to add place");
+            }
+        });
+    }
+
+    // ADD USER FORM
+    const addUserForm = document.getElementById("add-user-form");
+    if (addUserForm) {
+        addUserForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const userData = {
+                first_name: document.getElementById("first_name").value,
+                last_name: document.getElementById("last_name").value,
+                email: document.getElementById("email").value,
+                password: document.getElementById("password").value
+            };
+
+            try {
+                await createUser(userData);
+                alert("Account created successfully!");
+                window.location.href = "login.html";
+            } catch (error) {
+                alert("Failed to create account. Email may already be registered.");
+            }
         });
     }
 });

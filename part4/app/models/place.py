@@ -16,6 +16,7 @@ class Place(BaseModel):
     price = db.Column(db.Float, nullable=False)
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
+    image_url = db.Column(db.String(500), nullable=True)
 
     owner_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
 
@@ -28,7 +29,7 @@ class Place(BaseModel):
     )
 
     def __init__(self, title, description=None, price=0.0, latitude=0.0,
-                 longitude=0.0, owner_id=None):
+                 longitude=0.0, owner_id=None, image_url=None):
         super().__init__()
 
         if not isinstance(title, str) or not title.strip():
@@ -69,3 +70,4 @@ class Place(BaseModel):
         self.latitude = latitude
         self.longitude = longitude
         self.owner_id = owner_id
+        self.image_url = image_url

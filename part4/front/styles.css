@@ -132,13 +132,40 @@ button[type="submit"]:hover {
     background-color: #a85570;
 }
 
+/* --- FOOTER DE BASE --- */
 footer {
-    text-align: center;
+    position: relative;      /* Permet de positionner l'icône par rapport au footer */
+    text-align: center;      /* Centre le texte normalement */
     padding: 1rem;
     background-color: #f5dce5;
     color: #8b3a52;
     border-top: 1px solid #e8b4c5;
     margin-top: 2rem;
+    min-height: 60px;        /* Donne une hauteur minimale pour éviter les chevauchements */
+    display: flex;
+    justify-content: center; /* Centre horizontalement le contenu flex (le texte) */
+    align-items: center;     /* Centre verticalement */
+}
+
+footer p {
+    margin: 0;               /* Enlève les marges par défaut pour un centrage parfait */
+}
+
+.footer-icon {
+    position: absolute;      /* Sort l'icône du flux normal pour ne pas pousser le texte */
+    right: 20px;             /* La place à 20px du bord droit */
+    height: 30px;
+    width: auto;
+}
+/* --- FOOTER EN DARK MODE --- */
+body.dark-mode footer {
+    background-color: #3d1f28;
+    border-top: 1px solid #6b3347;
+    color: #f5dce5;
+}
+
+body.dark-mode .footer-icon {
+    filter: brightness(0.9);
 }
 
 .logo {
@@ -312,12 +339,6 @@ body.dark-mode h3 {
     color: #f5a0b5;
 }
 
-body.dark-mode footer {
-    background-color: #3d1f28;
-    border-top: 1px solid #6b3347;
-    color: #f5dce5;
-}
-
 body.dark-mode #filter select {
     background-color: #3d1f28;
     border-color: #6b3347;
@@ -385,20 +406,54 @@ body.dark-mode textarea {
     }
 }
 
+/* --- SECTION BANNIÈRE SEXY BNB --- */
 .welcome-banner {
     text-align: center;
-    margin-bottom: 2rem;
-    padding: 1.5rem;
+    margin-bottom: 3rem;
+    padding: 2rem;
+    /* On garde ton animation car elle est super ! */
+    animation: fadeIn 1s ease; 
 }
 
 .welcome-banner h2 {
-    font-size: 2rem;
+    font-size: 3.5rem;
+    color: #8b3a52;                /* Ton bordeaux chic */
+    margin-bottom: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-family: "Georgia", serif; /* Police élégante */
+    
+    /* Lueur subtile pour le mode clair */
+    text-shadow: 0 0 10px rgba(201, 114, 138, 0.25), 
+                 0 0 20px rgba(201, 114, 138, 0.1);
+}
+
+.welcome-banner p:first-of-type {
+    font-size: 1.5rem;
+    color: #c9728a;                /* Ton rose signature */
+    font-style: italic;            /* Côté sensuel */
     margin-bottom: 0.5rem;
 }
 
-.welcome-banner p {
+.welcome-banner p:last-of-type {
     color: #8b3a52;
-    font-size: 1.1rem;
+    font-size: 1rem;
+    opacity: 0.8;                  /* Plus discret pour la description */
+}
+
+/* On garde ton animation fadeIn telle quelle en bas de ton fichier */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+body.dark-mode .welcome-banner h2 {
+    color: #f5a0b5; /* Rose plus clair pour briller dans le noir */
+    
+    /* Effet Néon Intense pour le Dark Mode */
+    text-shadow: 0 0 5px #c9728a,      /* Halo intérieur */
+                 0 0 15px rgba(201, 114, 138, 0.6), /* Halo principal */
+                 0 0 25px rgba(201, 114, 138, 0.4); /* Halo extérieur diffus */
 }
 
 .place-card:hover {
@@ -414,4 +469,37 @@ body.dark-mode textarea {
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+#amenities-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.5rem;
+    margin: 0.5rem 0 1rem;
+}
+
+#amenities-list label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #4a3540;
+    font-size: 0.95rem;
+    cursor: pointer;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid #e8b4c5;
+    border-radius: 8px;
+    background-color: #fff8fb;
+}
+
+#amenities-list input[type="checkbox"] {
+    display: inline;
+    width: auto;
+    margin: 0;
+    accent-color: #c9728a;
+}
+
+body.dark-mode #amenities-list label {
+    color: #f5dce5;
+    background-color: #3d1f28;
+    border-color: #6b3347;
 }
